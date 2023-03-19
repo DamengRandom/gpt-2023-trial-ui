@@ -3,15 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "PORT=8383 next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
+    "@tanstack/react-query": "^4.26.1",
     "next": "13.2.4",
+    "openai": "^3.2.1",
     "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "react-dom": "18.2.0",
+    "typewriter-effect": "^2.19.0"
   },
   "devDependencies": {
     "eslint": "8.36.0",
