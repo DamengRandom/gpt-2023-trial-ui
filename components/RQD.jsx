@@ -1,45 +1,101 @@
 import {
   QueryClient,
   QueryClientProvider,
-  useQuery,
+  useMutation,
 } from "@tanstack/react-query";
 import Typewriter from "typewriter-effect";
-
+import gptStore from "../zustand/gptStore";
 const queryClient = new QueryClient();
 
 function RQDComponent() {
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["answer"],
-    queryFn: async () => {
-      const response = await fetch(
-        `/api/gpt?words=${"generate a javascript closure code example"}`
-      );
+  const currentQuery = gptStore((state) => state?.currentQuery);
+  const setCurrentQuery = gptStore((state) => state?.setCurrentQuery);
+  const showOrHide = gptStore((state) => state?.showOrHide);
+  const toggleShowHide = gptStore((state) => state?.toggleShowHide);
+  const answers = gptStore((state) => state?.answers);
+  const addAnswers = gptStore((state) => state?.addAnswers);
 
-      if (!response.ok) throw new Error("not ok ..");
+  const queryMutation = useMutation({
+    mutationFn: async (text) => {
+      if (text) {
+        const response = await fetch(`/api/gpt?words=${text}`); // query eg: "generate a javascript closure code example"
 
-      const json = await response.json();
+        if (!response.ok) throw new Error("not ok ..");
 
-      return json?.data?.choices[0]?.text;
+        const json = await response.json();
+
+        return json?.data?.choices[0]?.text;
+      } else {
+        return "No request detected yet ..";
+      }
+    },
+    onSuccess: () => {
+      // refetch the latest data
+      queryClient.invalidateQueries({ queryKey: ["answer"] });
     },
   });
 
-  if (isLoading) return <div>Content generating ..</div>;
-
-  if (isError) return <div>Error fetching data ..</div>;
+  const getAnswer = (value) => {
+    queryMutation.mutate(value, {
+      onSuccess: (data) => {
+        // save into client state store
+        addAnswers({ query: currentQuery, answer: data });
+        // reset current query input value
+        setCurrentQuery("");
+      },
+    });
+  };
 
   return (
-    <Typewriter
-      onInit={(typewriter) => {
-        typewriter
-          .typeString(data)
-          .callFunction(() => {
-            console.log("String typed out!");
-          })
-          .changeDelay(15)
-          .pauseFor(0)
-          .start();
-      }}
-    />
+    <>
+      <form>
+        <label>Search query: </label>
+        <input
+          name="query"
+          onBlur={(event) => {
+            event.preventDefault();
+            setCurrentQuery(event.target.value);
+            getAnswer(event.target.value);
+          }}
+        />
+      </form>
+      {queryMutation?.isLoading && <p>Content generating ..</p>}
+      {queryMutation?.isError && (
+        <p>Error occurred during generating new content ..</p>
+      )}
+      {!!queryMutation?.data && (
+        <>
+          <p>Query: {currentQuery}</p>
+          <Typewriter
+            onInit={(typewriter) => {
+              typewriter
+                .typeString(queryMutation.data)
+                .callFunction(() => {
+                  console.log("String typed out!");
+                })
+                .changeDelay(15)
+                .pauseFor(0)
+                .start();
+            }}
+          />
+          <button
+            onClick={() => {
+              toggleShowHide(!showOrHide);
+            }}
+          >
+            {showOrHide ? "show" : "hide"} current records
+          </button>
+        </>
+      )}
+      {!!answers?.length &&
+        showOrHide &&
+        answers.map((a, i) => (
+          <div key={`${a.query}-${i}`}>
+            <p>{a.query}</p>
+            <p>{a.answer}</p>
+          </div>
+        ))}
+    </>
   );
 }
 
