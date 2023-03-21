@@ -3,9 +3,57 @@ import {
   QueryClientProvider,
   useMutation,
 } from "@tanstack/react-query";
-import Typewriter from "typewriter-effect";
+import styled, { css, keyframes } from "styled-components";
 import gptStore from "../zustand/gptStore";
 const queryClient = new QueryClient();
+
+const cursor = keyframes`
+  50% {
+    border-color: transparent;
+  }
+`;
+
+const typing = keyframes`
+  from {
+    width: 0;
+  }
+`;
+
+const typeWriterAnimation = (props) =>
+  css`
+    ${typing} 4s steps(${props.steps}), ${cursor} 4s step-end infinite alternate;
+  `;
+
+const QueryForm = styled.div`
+  margin-bottom: 2rem;
+`;
+
+const AnswerBox = styled.div`
+  width: 960px;
+  margin: 0;
+
+  pre {
+    margin: 0;
+  }
+
+  .records-button {
+    margin-top: 4rem;
+  }
+`;
+
+const TypeWriterWrapper = styled.div`
+  font-size: 1rem;
+  letter-spacing: 0.05rem;
+  font-family: monospace;
+  white-space: nowrap;
+  width: 100%;
+  overflow: hidden;
+  animation: ${typeWriterAnimation};
+`;
+
+const AnswerRecordsBox = styled.div`
+  width: 960px;
+`;
 
 function RQDComponent() {
   const currentQuery = gptStore((state) => state?.currentQuery);
@@ -39,16 +87,16 @@ function RQDComponent() {
     queryMutation.mutate(value, {
       onSuccess: (data) => {
         // save into client state store
-        addAnswers({ query: currentQuery, answer: data });
+        addAnswers({ query: value, answer: data });
         // reset current query input value
-        setCurrentQuery("");
+        // setCurrentQuery("");
       },
     });
   };
 
   return (
     <>
-      <form>
+      <QueryForm>
         <label>Search query: </label>
         <input
           name="query"
@@ -58,42 +106,37 @@ function RQDComponent() {
             getAnswer(event.target.value);
           }}
         />
-      </form>
+      </QueryForm>
       {queryMutation?.isLoading && <p>Content generating ..</p>}
       {queryMutation?.isError && (
         <p>Error occurred during generating new content ..</p>
       )}
       {!!queryMutation?.data && (
-        <>
+        <AnswerBox>
           <p>Query: {currentQuery}</p>
-          <Typewriter
-            onInit={(typewriter) => {
-              typewriter
-                .typeString(queryMutation.data)
-                .callFunction(() => {
-                  console.log("String typed out!");
-                })
-                .changeDelay(15)
-                .pauseFor(0)
-                .start();
-            }}
-          />
+
+          <TypeWriterWrapper steps={queryMutation.data.length}>
+            <pre>{queryMutation.data}</pre>
+          </TypeWriterWrapper>
+
           <button
+            className="records-button"
             onClick={() => {
               toggleShowHide(!showOrHide);
             }}
           >
             {showOrHide ? "show" : "hide"} current records
           </button>
-        </>
+        </AnswerBox>
       )}
       {!!answers?.length &&
         showOrHide &&
         answers.map((a, i) => (
-          <div key={`${a.query}-${i}`}>
+          <AnswerRecordsBox key={`${a.query}-${i}`}>
             <p>{a.query}</p>
-            <p>{a.answer}</p>
-          </div>
+            <pre>{a.answer}</pre>
+            <hr />
+          </AnswerRecordsBox>
         ))}
     </>
   );
