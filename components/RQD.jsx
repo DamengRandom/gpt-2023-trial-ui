@@ -43,9 +43,8 @@ const AnswerBox = styled.div`
 
 const TypeWriterWrapper = styled.div`
   font-size: 1rem;
-  letter-spacing: 0.05rem;
   font-family: monospace;
-  white-space: nowrap;
+  white-space: pre-line;
   width: 100%;
   overflow: hidden;
   animation: ${typeWriterAnimation};
