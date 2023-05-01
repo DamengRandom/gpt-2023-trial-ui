@@ -5,8 +5,7 @@ const configuration = new Configuration({
 });
 
 const OAModel = "text-davinci-003";
-
-const OAMaxTokens = 2000; // set dynamically
+const OAMaxTokens = 200; // set dynamically
 
 export default async function handler(req, res) {
   try {
